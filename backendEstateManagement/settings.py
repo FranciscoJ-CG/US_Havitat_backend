@@ -172,7 +172,7 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'auth_app.User'
 
-COINK_SECRET= env('COINK_SECRET')
+COINK_SECRET= os.getenv('COINK_SECRET')
 COINK_X_API_KEY = os.getenv('COINK_X_API_KEY')
 BAAS_API_URL = os.getenv('COINK_API_URL')
 
