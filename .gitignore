@@ -25,7 +25,7 @@ staticfiles/
 .env
 .env.local
 .env.*.local
-sandbox
+sandbox.py
 COINK_DICTs/
 
 
