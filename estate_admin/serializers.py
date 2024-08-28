@@ -19,7 +19,7 @@ class ComplexSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Complex
-        fields = ['id', 'name', 'type', 'havitat', 'bank_account']
+        fields = ['id', 'name', 'type', 'havitat']
 
 class UnitTypeSerializer(serializers.ModelSerializer):
     class Meta:
