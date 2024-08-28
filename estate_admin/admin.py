@@ -140,7 +140,7 @@ class RelationshipAdmin(admin.ModelAdmin):
 
 
 class ComplexAdmin(admin.ModelAdmin):
-    list_display = ('name', 'type', 'havitat', 'bank_account')
+    list_display = ('name', 'type', 'havitat')
 
     def get_queryset(self, request):
         if request.user.is_superuser:

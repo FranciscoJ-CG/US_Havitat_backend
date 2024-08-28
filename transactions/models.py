@@ -4,58 +4,6 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 
 
-# class Bank(models.Model):
-#     name = models.CharField(max_length=255)
-#     code = models.CharField(max_length=50)
-#     country = models.CharField(max_length=100)
-
-#     def __str__(self):
-#         return f"{self.name} ({self.code})"
-
-#     class Meta:
-#         verbose_name = "Banco"
-#         verbose_name_plural = "Bancos"
-
-# class BankAccount(models.Model):
-#     ACCOUNT_TYPES = [
-#         ('checking', 'Checking'),
-#         ('savings', 'Savings'),
-#     ]
-
-#     bank = models.ForeignKey(Bank, on_delete=models.PROTECT)
-#     account_number = models.CharField(max_length=255)  # Consider encryption
-#     account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES)
-#     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     is_active = models.BooleanField(default=True)
-
-#     def __str__(self):
-#         return f"{self.bank.name} - {self.account_number[-4:]}"
-
-#     class Meta:
-#         verbose_name = "Cuenta Bancaria"
-#         verbose_name_plural = "Cuentas Bancarias"
-
-# class PaymentMethod(models.Model):
-#     METHOD_TYPES = [
-#         ('credit_card', 'Credit Card'),
-#         ('bank_transfer', 'Bank Transfer'),
-#         ('cash', 'Cash'),
-#         ('other', 'Other'),
-#     ]
-
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     method_type = models.CharField(max_length=20, choices=METHOD_TYPES)
-#     details = models.JSONField()
-#     is_default = models.BooleanField(default=False)
-
-#     def __str__(self):
-#         return f"{self.user.username} - {self.get_method_type_display()}"
-
-#     class Meta:
-#         verbose_name = "Método de Pago"
-#         verbose_name_plural = "Métodos de Pago"
-
-
 class Transaction(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

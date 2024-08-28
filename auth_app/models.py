@@ -25,7 +25,7 @@ class DocumentType(models.Model):
 
 class User(AbstractUser):
     type = models.ForeignKey(UserType, on_delete=models.PROTECT, null=True, blank=True)
-    document = models.IntegerField(null=True, blank=True, unique=True)
+    document = models.CharField(max_length=255) 
     document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT, null=True, blank=True)
     worker = models.BooleanField(default=False)
 

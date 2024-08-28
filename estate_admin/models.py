@@ -31,7 +31,6 @@ class Complex(models.Model):
     type = models.ForeignKey(ComplexType, on_delete=models.CASCADE)
     havitat = models.ForeignKey(Havitat, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    bank_account = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} -- {self.havitat.name}"
