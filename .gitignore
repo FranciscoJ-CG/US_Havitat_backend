@@ -1,0 +1,42 @@
+# temporal
+user_info.json
+
+# Django specific files
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+*.sqlite3
+
+# If your virtual environment is named 'venv'
+venv/
+.env
+
+# Django migrations
+*/migrations/*
+!*/migrations/__init__.py
+
+# Media and static files
+media/
+staticfiles/
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+sanbox
+COINK_DICTs/
+
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
