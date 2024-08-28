@@ -34,18 +34,12 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
 )
+
 DEBUG = env.bool("DEBUG", default=False)
-# ALLOWED_HOSTS = env("ALLOWED_HOSTS")
-ALLOWED_HOSTS = [
-    'e691-152-201-231-155.ngrok-free.app',
-    'localhost', 
-    '127.0.0.1',
-    ]
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [
-    "https://e691-152-201-231-155.ngrok-free.app"
-]
+CSRF_TRUSTED_ORIGINS= env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -54,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -67,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -101,15 +97,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backendEstateManagement.wsgi.application'
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
-# default = env.db('DATABASE_URL', default=None)
-# DATABASES={ 'default': default } 
+default = env.db('DATABASE_URL', default=None)
+DATABASES={ 'default': default } 
 
 
 
@@ -151,6 +147,8 @@ STATIC_URL = 'static/'
 STATIC_FILLES_DIRS = [
     BASE_DIR / 'static'
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 # Default primary key field type
