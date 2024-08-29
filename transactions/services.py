@@ -47,55 +47,43 @@ class Utils:
 
         
 class BaaSConnection:
+    
     @staticmethod
     def sign_in_to_coink(login_data):
         url = f"{settings.BAAS_API_URL}/users/sign_in"
 
-        email = login_data.get("email")
-        document_number = login_data.get("document_number")
-        phone_number = login_data.get("phone_number")
-        document_type_id = login_data.get("document_type_id")
-
         payload = {
             "pin": login_data.get("pin"),
-            "method": login_data.get("method", "PHONE")
+            "method": login_data.get("method", "PHONE"),
+            "email": login_data.get("email"),
+            "document_number": login_data.get("document_number"),
+            "phone_number": login_data.get("phone_number"),
+            "document_type_id": login_data.get("document_type_id")
         }
-
-        if email: payload['email'] = email
-        if document_number: payload['document_number'] = document_number
-        if phone_number: payload['phone_number'] = phone_number
-        if document_type_id: payload['document_type_id'] = document_type_id
-
 
         headers = {
             'x-api-key': settings.COINK_X_API_KEY,
             'Content-Type': 'application/json'
         }
-        encrypted_payload = Utils.get_cypher_payload(payload, settings.COINK_SECRET)
 
-        data = {'payload': encrypted_payload}
-        headers = {
-            'x-api-key': settings.COINK_X_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        requests.post(url, json=data, headers=headers)
+        encrypted_payload = Utils.get_cypher_payload({k: v for k, v in payload.items() if v}, settings.COINK_SECRET)
+        response = requests.post(url, json={'payload': encrypted_payload}, headers=headers)
 
-        response = requests.post(url, json=data, headers=headers)
-
-        authorization_value = None
 
         if response.status_code == 200:
             payload = json.loads(response.text).get('payload')
             decrypted = Utils.get_decrypt(payload, settings.COINK_SECRET)
-            decrypted = json.loads(decrypted)
-            authorization_value = decrypted.get('authorization')
+            return json.loads(decrypted).get('authorization')
 
-        return authorization_value
-    
+        return None
+        
     
     @staticmethod
     def get_updated_transaction_status(transfer_id, coink_login_data):
         authorization = BaaSConnection.sign_in_to_coink(coink_login_data)
+
+        if not authorization:
+            return None
 
         url = f"{settings.BAAS_API_URL}/transactions/detail"
         headers = {
@@ -106,39 +94,40 @@ class BaaSConnection:
 
         payload = {'transfer_id': transfer_id}
         encrypted = Utils.get_cypher_payload(payload, settings.COINK_SECRET)
-        data = {'payload': encrypted}
 
-        response = requests.post(url, json=data, headers=headers)
-        data = response.json()
-        payload = data.get('payload')
-        decrypted = Utils.get_decrypt(payload, settings.COINK_SECRET)
-        decrypted = json.loads(decrypted)
-        status_id = decrypted.get('operation_status_id')
+        try:
+            response = requests.post(url, json={'payload': encrypted}, headers=headers)
+            response.raise_for_status()
+            decrypted = Utils.get_decrypt(response.json().get('payload'), settings.COINK_SECRET)
+            return json.loads(decrypted).get('operation_status_id')
+        except Exception as e:
+            return None
 
-        return status_id
 
     @staticmethod
     def update_transaction_and_admin_fees(transaction, status_id):
         admin_fees = AdminFee.objects.filter(transaction=transaction)
-        is_active = True
-        if status_id == 2:
-            transaction.status = 'completed'
+
+        status_mapping = {
+            2: ('completed', 'paid'),
+            8: ('processing', 'processing'),
+            15: ('processing', 'processing'),
+            4: ('discarded', 'pending'),
+            3: ('discarded', 'pending'),
+            6: ('discarded', 'pending')
+        }
+
+        transaction_status, admin_fee_status = status_mapping.get(status_id, (None, None))
+
+        is_active = False
+
+        if transaction_status:
+            transaction.status = transaction_status
             transaction.save()
+
             for admin_fee in admin_fees:
-                admin_fee.state = 'paid'
+                admin_fee.state = admin_fee_status
                 admin_fee.save()
-            return is_active 
-        elif status_id in [8, 15]:
-            transaction.status = 'processing'
-            transaction.save()
-            for admin_fee in admin_fees:
-                admin_fee.state = 'processing'
-                admin_fee.save()
-            return is_active
-        elif status_id in [4, 3, 6]:
-            transaction.status = 'discarded'
-            transaction.save()
-            for admin_fee in admin_fees:
-                admin_fee.state = 'pending'
-                admin_fee.save()
-        return not is_active
+            is_active = transaction_status != 'discarded'
+
+        return is_active

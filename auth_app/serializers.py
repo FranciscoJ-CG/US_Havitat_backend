@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User
-from estate_admin.helpers import UserStatus
+from estate_admin.services import UserStatus
 
 
 class UserSerializer(serializers.ModelSerializer):

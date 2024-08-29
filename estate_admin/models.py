@@ -1,7 +1,6 @@
 # estate_admin/models.py
-from django.db import models, transaction
+from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 from auth_app.models import User
 
@@ -64,6 +63,9 @@ class Unit(models.Model):
         verbose_name = "Unidad"
         verbose_name_plural = "Unidades"
         unique_together = ('complex', 'name')
+        indexes = [
+            models.Index(fields=['name', 'complex']),
+        ]
 
 
 class DynamicRole(models.Model):
@@ -105,7 +107,8 @@ class Relationship(models.Model):
         super().save(*args, **kwargs)
 
     def validate_relationship_constraints(self):
-        if [self.unit, self.complex, self.havitat].count(None) != 2:
+
+        if sum([bool(self.unit), bool(self.complex), bool(self.havitat)]) != 1:
             raise ValidationError("A relationship must be associated with exactly one of unit, complex, or havitat.")
         
         if self.role == 'estate_admin':
@@ -127,3 +130,6 @@ class Relationship(models.Model):
         unique_together = ('user', 'unit', 'role' )
         verbose_name = "Relación"
         verbose_name_plural = "Relaciones"
+        indexes = [
+            models.Index(fields=['user', 'role']),
+        ]
