@@ -25,9 +25,10 @@ class CustomUserAdmin(BaseUserAdmin):
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
 
+
     def _is_super_unit_admin(self, user):
         related_super_units = Relationship.objects.filter(user=user, role='estate_admin').values_list('super_unit', flat=True)
-        related_super_units = [unit for unit in related_super_units if unit is not None]
+        related_super_units = list(filter(None, related_super_units))
         return bool(related_super_units), related_super_units
 
     def get_queryset(self, request):
@@ -37,8 +38,11 @@ class CustomUserAdmin(BaseUserAdmin):
 
         non_staff_qs = qs.filter(is_staff=False)
         is_super_unit_admin, super_unit_ids = self._is_super_unit_admin(request.user)
+
         if is_super_unit_admin:
-            complex_managers_ids= Relationship.objects.filter(complex__super_unit__in=super_unit_ids, role='estate_admin').values_list('user', flat=True)
+            complex_managers_ids= Relationship.objects.filter(
+                complex__super_unit__in=super_unit_ids, role='estate_admin'
+                ).values_list('user', flat=True)
             complex_managers_qs= User.objects.filter(id__in=complex_managers_ids)
             combined_qs = qs.filter(Q(id__in=non_staff_qs.values_list('id', flat=True)) | 
                                     Q(id__in=complex_managers_qs.values_list('id', flat=True)))
@@ -50,8 +54,10 @@ class CustomUserAdmin(BaseUserAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             return super().get_fieldsets(request, obj)
+
         if obj is None:
             return self.add_fieldsets
+
         non_superuser_fieldsets = (
             (None, {'fields': ('username', 'password', 'worker')}),
             ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'type', 'document', 'document_type')}),

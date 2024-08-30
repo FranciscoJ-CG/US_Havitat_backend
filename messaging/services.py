@@ -8,14 +8,13 @@ from .models import Message, Thread, ThreadStatus
 @transaction.atomic
 def send_message(sender, recipient, subject, body, thread=None, complex=None):
     if not thread:
-        thread= Thread.objects.create(subject=subject, complex=complex)
-        # complex is not None and thread.complexes.set([complex])
+        thread = Thread.objects.create(subject=subject, complex=complex)
         thread.participants.set([sender, recipient])
         ThreadStatus.objects.create(user=sender, thread=thread, in_outbox=True, can_send=True, is_read=True)
         ThreadStatus.objects.create(user=recipient, thread=thread, in_inbox=True, can_send=True)
     else:
 
-        thread_status= ThreadStatus.objects.get(thread=thread, user=sender)
+        thread_status = ThreadStatus.objects.get(thread=thread, user=sender)
         if not thread_status.can_send:
             return None
         thread_status.in_outbox = True
@@ -45,7 +44,6 @@ def send_message(sender, recipient, subject, body, thread=None, complex=None):
 def send_massive_message(sender, subject, body, receivers, complex):
     
     thread= Thread.objects.create(subject=subject, complex=complex)
-    # complexes and thread.complexes.set(complexes)
     thread.participants.set([sender])
     message= Message.objects.create(
         sender=sender,

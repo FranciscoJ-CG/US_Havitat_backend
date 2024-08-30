@@ -12,33 +12,36 @@ from auth_app.models import User
 from estate_admin.models import Relationship, Complex
 
 
+def get_thread_status_queryset(user, complex_id, inbox=True):
+    filter_args = {
+        'user': user,
+        'is_deleted': False,
+        'thread__complex_id': complex_id
+    }
+    if inbox:
+        filter_args['in_inbox'] = True
+    else:
+        filter_args['in_outbox'] = True
+
+    return ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def inbox_view(request, complex_id):
     user = request.user
-    thread_statuses= ThreadStatus.objects.filter(
-        user=user,
-        is_deleted=False,
-        in_inbox=True,
-        thread__complex_id=complex_id,
-    ).order_by('-last_message_date')
+    thread_statuses = get_thread_status_queryset(user, complex_id, inbox=True)
     serializer = ThreadStatusSerializer(thread_statuses, many=True)
-    threads = serializer.data
-    return Response({'threads': threads})
+    return Response({'threads': serializer.data})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def outbox_view(request, complex_id):
     user = request.user
-    thread_statuses = ThreadStatus.objects.filter(
-        user=user,
-        is_deleted=False,
-        in_outbox=True,
-        thread__complex_id=complex_id,
-    ).order_by('-last_message_date')
+    thread_statuses = get_thread_status_queryset(user, complex_id, inbox=False)
     serializer = ThreadStatusSerializer(thread_statuses, many=True)
-    threads = serializer.data
-    return Response({'threads': threads})
+    return Response({'threads': serializer.data})
 
 
 @api_view(['GET', 'PUT'])
@@ -46,10 +49,10 @@ def outbox_view(request, complex_id):
 def thread_view(request, thread_id):
     user = request.user
     thread = get_object_or_404(Thread, id=thread_id)
+    thread_status = get_object_or_404(ThreadStatus, user=user, thread=thread, is_deleted=False)
 
     if request.method == 'GET':
 
-        thread_status = get_object_or_404(ThreadStatus, user=user, thread=thread, is_deleted=False)
         thread_status.is_read = True
         thread_status.save()
         messages = Message.objects.filter(thread=thread)
@@ -57,16 +60,13 @@ def thread_view(request, thread_id):
             return Response({'detail': 'Not found.'}, status=404)
         
         message_serializer = MessageSerializer(messages, many=True)
-        messages = message_serializer.data
-
         return Response({
             'subject': thread.subject,
             'user_id': user.id,
-            'messages': messages,
+            'messages': message_serializer.data,
         })
 
     elif request.method == 'PUT':
-        thread_status = get_object_or_404(ThreadStatus, user=user, thread=thread)
         thread_status.is_read = True
         thread_status.save()
         return Response({'status': 'Thread marked as read'}, status=status.HTTP_200_OK)
@@ -81,20 +81,10 @@ def delete_threads_view(request):
     if not thread_ids:
         return Response({'error': 'No thread IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
     
-    deleted_count = 0
-    for thread_id in thread_ids:
-        try:
-            thread = get_object_or_404(Thread, id=thread_id)
-            thread_status = ThreadStatus.objects.get(user=user, thread=thread)
-            thread_status.is_deleted = True
-            thread_status.save()
-            deleted_count += 1
-        except ThreadStatus.DoesNotExist:
-            continue
-    
+    deleted_count = ThreadStatus.objects.filter(user=user, thread_id__in=thread_ids).update(is_deleted=True)
+ 
     return Response({
-        'status': f'{deleted_count} threads marked as deleted',
-        'deleted_count': deleted_count
+        'success': f'{len(deleted_count)} threads marked as deleted',
     }, status=status.HTTP_200_OK)
 
 
@@ -125,6 +115,7 @@ def send_message_view(request):
 def send_massive_message_view(request):
     sender = request.user
     serializer = MassiveMessageInputSerializer(data=request.data)
+
     if serializer.is_valid():
         subject = serializer.validated_data['subject']
         body = serializer.validated_data['body']
@@ -134,7 +125,6 @@ def send_massive_message_view(request):
         complex = Complex.objects.get(id=complex_id)
 
         send_massive_message(sender, subject, body, receivers, complex)
-        
         return Response({'detail': 'Massive message sent successfully'}, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

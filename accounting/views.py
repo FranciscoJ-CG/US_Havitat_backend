@@ -1,5 +1,5 @@
 from django.db import transaction
-from rest_framework import generics, status
+from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -8,11 +8,11 @@ from .models import AdminFee
 from .serializers import AdminFeeSerializer
 from estate_admin.models import Unit
 
-class AdminFeeListView(generics.ListAPIView):
+class AdminFeeView(APIView):
     serializer_class = AdminFeeSerializer
 
-    def get_queryset(self):
-        fee_ids_str = self.request.query_params.get('fee_ids', '')
+    def get(self, request, *args, **kwargs):
+        fee_ids_str = request.query_params.get('fee_ids', '')
         
         if not fee_ids_str:
             raise ValidationError("Query parameter 'fee_ids' is required.")
@@ -22,27 +22,25 @@ class AdminFeeListView(generics.ListAPIView):
         except ValueError:
             raise ValidationError("Invalid 'fee_ids' format. It should be a comma-separated list of numbers.")
 
-        return AdminFee.objects.filter(id__in=fee_ids)
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        queryset = AdminFee.objects.filter(id__in=fee_ids)
+        serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
-
-class AdminFeeView(APIView):
     def post(self, request, *args, **kwargs):
-        data = request.data.get('fee_info')
-        if not data['reduction_deadline']:
-            del data['reduction_deadline']
+        data = request.data.get('fee_info', {})
+        if not data:
+            return Response({"error": "fee_info is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = AdminFeeSerializer(data=data)
+        if not data.get('reduction_deadline'):
+            data.pop('reduction_deadline', None)
+
+        serializer = self.serializer_class(data=data)
         if serializer.is_valid():
             complex_id = request.data.get('complex_id')
             unit_ids = request.data.get('unit_ids', [])
             havitat_id = request.data.get('havitat_id')
 
-            units = []
+            units = Unit.objects.none()
             if unit_ids:
                 units = Unit.objects.filter(id__in=unit_ids)
             elif complex_id:
@@ -50,7 +48,7 @@ class AdminFeeView(APIView):
             elif havitat_id:
                 units = Unit.objects.filter(complex__havitat__id=havitat_id)
 
-            if not units:
+            if not units.exists():
                 return Response({"error": "No units found"}, status=status.HTTP_404_NOT_FOUND)
 
             fee_info = serializer.validated_data
@@ -68,11 +66,9 @@ class AdminFeeView(APIView):
                             reduction_deadline=fee_info.get('reduction_deadline'),
                             description=fee_info.get('description', ''),
                         )
-                return Response({"success": "Balance modifications created successfully"}, status=status.HTTP_201_CREATED)
+                return Response({"success": "AdminFees created successfully"}, status=status.HTTP_201_CREATED)
             except Exception as e:
-                print(e)
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
