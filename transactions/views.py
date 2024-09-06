@@ -16,16 +16,9 @@ from .models import Transaction, AccountInfo
 from .serializers import (TransactionSerializer,
                           PSETransactionSerializer,
                           )
-from .services import  Utils, BaaSConnection
+from .services import  Utils, BaaSConnection, update_transaction_and_admin_fees
 from accounting.models import AdminFee
 
-
-
-coink_login_data = {
-    "phone_number": "573180004115",
-    "pin": "1212",
-    "method": "PHONE"
-}
 
 class DictionariesView(APIView):
 
@@ -48,60 +41,22 @@ class DictionariesView(APIView):
            return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class AccountHistoryView(APIView):
-
-    # def post(self, request):
-    def get(self, request):
-        authorization_value = BaaSConnection.sign_in_to_coink(coink_login_data)
-
-        if not authorization_value:
-            return Response({'error': 'Failed to authenticate'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-        url = f"{settings.BAAS_API_URL}/accounts/history"
-        authorization =  authorization_value
-        headers = {
-            'Authorization': authorization,
-            'x-api-key': settings.COINK_X_API_KEY,
-            'Content-Type': 'application/json'
-        }
-
-        mocked_request_data = { 
-            "items_per_page": 1000,
-            "current_page": 1,
-            "filters": {"account_id": "89ef1221-0782-453b-a874-fc63d9eeebab"}
-        }
-
-        try:
-            encrypted = Utils.get_cypher_payload(mocked_request_data, settings.COINK_SECRET)
-            # encrypted = Utils.get_cypher_payload(request.data, settings.COINK_SECRET)
-            response = requests.post(url, json={'payload': encrypted}, headers=headers)
-            decrypted = Utils.get_decrypt(response.json().get('payload'), settings.COINK_SECRET)
-
-            return Response(json.loads(decrypted), status=status.HTTP_200_OK)
-        except requests.exceptions.HTTPError as http_err:
-            return Response({'error': str(http_err)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as err:
-            return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 class UserTransactionListView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, complex_id):
         transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
 
         pending_transactions = [t for t in transactions if t.status != 'completed']
         relevant_transactions = [t for t in transactions if t.status == 'completed']
 
         for transaction in pending_transactions:
-            status_id = BaaSConnection.get_updated_transaction_status(transaction.transfer_id, coink_login_data)
-            is_active = BaaSConnection.update_transaction_and_admin_fees(transaction, status_id)
+            status_id = BaaSConnection.get_updated_transaction_status(transaction.transfer_id, complex_id)
+            is_active = update_transaction_and_admin_fees(transaction, status_id)
             if is_active: relevant_transactions.append(transaction)
          
         serializer = TransactionSerializer(relevant_transactions, many=True)
         return Response(serializer.data)
-
         
 
 @api_view(['GET'])
@@ -118,34 +73,21 @@ def generate_random_string(length=15):
 class PSETransaction(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, id):
-        authorization = BaaSConnection.sign_in_to_coink(coink_login_data)
-        if not authorization:
-            return Response({'error': 'Failed to authenticate'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        url = f"{settings.BAAS_API_URL}/transactions/detail"
-        headers = {
-            'x-api-key': settings.COINK_X_API_KEY,
-            'Authorization': authorization,
-            'Content-Type': 'application/json'
-        }
-
-        payload = { 'transfer_id': id }
+    def get(self, request, complex_id, id):
         try:
-            encrypted = Utils.get_cypher_payload(payload, settings.COINK_SECRET)
-            response = requests.post(url, json={'payload': encrypted}, headers=headers)
-            decrypted = Utils.get_decrypt(response.json().get('payload'), settings.COINK_SECRET)
-            return Response(json.loads(decrypted), status=status.HTTP_200_OK)
+            payload = {'transfer_id': id}
+            url = f"{settings.BAAS_API_URL}/transactions/detail"
+            decrypted_response = BaaSConnection.api_call(complex_id, url, request_data=payload)
+            return Response(json.loads(decrypted_response), status=status.HTTP_200_OK)
         except Exception as err:
             return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def post(self, request, id):
-        complex_id = id
+    def post(self, request, complex_id):
         transfer_id = str(uuid.uuid4())
-        external_reference = generate_random_string() 
+        external_reference = generate_random_string()
         custom_id = generate_random_string()
         account_number = AccountInfo.objects.get(complex__id=complex_id).account_number
-        callback = f'https://{settings.ALLOWED_HOSTS[0]}/transactions/callback',
+        callback = f'https://{settings.ALLOWED_HOSTS[0]}/transactions/callback'
         serializer = PSETransactionSerializer(data=request.data)
 
         if not serializer.is_valid(raise_exception=True):
@@ -159,31 +101,30 @@ class PSETransaction(APIView):
             return Response({
                 'total_amount': total_amount,
                 'data.amount': data['amount'],
-                'detail': 'Total amount does not match with admin fees'}, 
-                status=status.HTTP_400_BAD_REQUEST)
+                'detail': 'Total amount does not match with admin fees'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         payload = {
             'transfer_id': transfer_id,
             'external_reference': external_reference,
             'custom_id': custom_id,
             'account_number': account_number,
-            'callback': callback[0],
+            'callback': callback,
             'external_account': data['external_account'],
         }
 
-
-        data['amount']=float(data['amount'])
         response = None
+        data['amount']=float(data['amount'])
         with django_transaction.atomic():
             transaction = Transaction.objects.create(
-                user = request.user,
-                amount = data['amount'],
-                timestamp =  datetime.now(), 
-                transfer_id = transfer_id,
-                )
-            transaction.save()
+                user=request.user,
+                amount=data['amount'],
+                timestamp=datetime.now(),
+                transfer_id=transfer_id,
+            )
 
             for admin_fee in admin_fees:
+                print('......loop.....')
                 if admin_fee.transaction is not None:
                     existing_transaction = Transaction.objects.get(id=admin_fee.transaction.id)
                     existing_transaction.status = 'discarded'
@@ -193,24 +134,23 @@ class PSETransaction(APIView):
                 admin_fee.paid_interest = admin_fee.get_interest_price()
                 admin_fee.save()
 
-            response = self.send_pse_transaction({**payload, **data})
+            response = self.send_pse_transaction({**payload, **data}, complex_id)
+
+            print('..................................................')            
+            print(response)
 
         if response is None or 'error' in response:
             return Response({'detail': 'Something went wrong'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(response, status=status.HTTP_201_CREATED)
 
-    def send_pse_transaction(self, data):
+    def send_pse_transaction(self, data, complex_id):
         url = f"{settings.BAAS_API_URL}/transactions/paygateway/pse"
-        headers = {
-            'Authorization':'1234',
-            'x-api-key': settings.COINK_X_API_KEY, 
-            'Content-Type': 'application/json'
-        }
+
         try:
-            payload = Utils.get_cypher_payload(data, settings.COINK_SECRET)
-            response = requests.post(url, json={'payload': payload}, headers=headers)
-            decrypted = Utils.get_decrypt(response.json().get('payload'), settings.COINK_SECRET)
-            return json.loads(decrypted)
+            print('............sending pse transaction......................................')            
+            decrypted_response = BaaSConnection.api_call(complex_id, url, data)
+            print(decrypted_response)
+            return decrypted_response
         except Exception as err:
             return {"error": str(err)}
 
@@ -232,7 +172,6 @@ class AccountOwnView(APIView):
             return Response(json.loads(decrypted), status=response.status_code)
         except requests.exceptions.RequestException as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 # just for testing in development
 class PSETestTransaction(APIView):

@@ -50,8 +50,9 @@ class TransactionLog(models.Model):
 class AccountInfo(models.Model):
     complex = models.ForeignKey('estate_admin.Complex', on_delete=models.CASCADE)
     account_id = models.UUIDField(unique=True)
-    description = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     account_number = models.CharField(max_length=20, unique=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
     pin = models.CharField(max_length=128, default='0000')
 
     def set_pin(self, raw_pin):
@@ -59,4 +60,8 @@ class AccountInfo(models.Model):
 
     def __str__(self):
         return f"{self.account_number} - {self.complex}"
+    
+    class Meta:
+        verbose_name = "Info de Cuenta"
+        verbose_name_plural = "Info de Cuentas"
 

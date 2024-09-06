@@ -84,7 +84,7 @@ def delete_threads_view(request):
     deleted_count = ThreadStatus.objects.filter(user=user, thread_id__in=thread_ids).update(is_deleted=True)
  
     return Response({
-        'success': f'{len(deleted_count)} threads marked as deleted',
+        'success': f'{deleted_count} threads marked as deleted',
     }, status=status.HTTP_200_OK)
 
 

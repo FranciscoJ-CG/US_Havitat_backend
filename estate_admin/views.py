@@ -7,16 +7,16 @@ from django.utils import timezone
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-from .models import (Relationship, Unit, Complex, UnitType)
-from .serializers import (UnitSerializer, ComplexSerializer, UnitSerializerWhitRelationship)
-from .services import UserStatus
+from estate_admin.services import UserStatus
+from estate_admin.services_.fetch_units_with_admin_fees import fetch_units_with_admin_fees
+from estate_admin.models import (Relationship, Unit, Complex, UnitType)
+from estate_admin.serializers import (UnitSerializer, ComplexSerializer, UnitSerializerWhitRelationship)
 from accounting.models import AdminFee
 from accounting.serializers import AdminFeeSerializer
-from transactions.views import coink_login_data   
-from transactions.services import BaaSConnection
+from transactions.services import BaaSConnection, update_transaction_and_admin_fees, fetch_transactions
 
 
-def update_transaction_statuses(unit_id):
+def update_transaction_statuses(unit_id, complex_id):
     admin_fees = AdminFee.objects.filter(unit=unit_id, state__in=['pending', 'processing'])
     transactions = [
         admin_fee.transaction for admin_fee in admin_fees
@@ -24,10 +24,27 @@ def update_transaction_statuses(unit_id):
     ]
     for transaction in transactions:
         status_id = BaaSConnection.get_updated_transaction_status(
-            transaction.transfer_id, coink_login_data)
-        BaaSConnection.update_transaction_and_admin_fees(transaction, status_id)
+            transaction.transfer_id, complex_id)
+        update_transaction_and_admin_fees(transaction, status_id)
     
     return AdminFee.objects.filter(unit=unit_id, state__in=['pending', 'processing'])
+
+
+class ComplexInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, complex_id):
+        try:
+            account_data = fetch_transactions(complex_id)
+            units = fetch_units_with_admin_fees(complex_id)
+
+            return Response({
+                'account_data': account_data,
+                'units': units
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ComplexManagement(APIView):
@@ -51,7 +68,8 @@ class UnitManagement(APIView):
         units = Unit.objects.filter(id__in=unit_ids).values()
 
         for unit in units:
-            admin_fees = update_transaction_statuses(unit['id'])
+            complex = get_object_or_404(Complex, id=unit['complex_id'])
+            admin_fees = update_transaction_statuses(unit['id'], complex.id)
             unit['admin_fees'] = AdminFeeSerializer(admin_fees, many=True).data
             
             relationship = relationships.get(unit=unit['id'])
@@ -60,7 +78,6 @@ class UnitManagement(APIView):
                 'permission_level': relationship.permission_level
             }
 
-            complex = get_object_or_404(Complex, id=unit['complex_id'])
             admin_id = Relationship.objects.filter(complex=complex, role='estate_admin').values_list('user_id', flat=True).first()
             unit['complex'] = {
                 'name': complex.name, 
@@ -70,30 +87,6 @@ class UnitManagement(APIView):
             unit['type'] = UnitType.objects.get(id=unit['type_id']).name
 
         return Response({'units': units})
-
-
-class ComplexUnits(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, complex_id):
-        related_units_ids = Unit.objects.filter(complex=complex_id).values_list('id', flat=True)
-        related_units = []
-
-        for unit_id in related_units_ids:
-            admin_fees = AdminFee.objects.filter(
-                Q(unit=unit_id) & (
-                    Q(state='pending') | 
-                    (Q(state='paid') & Q(transaction__timestamp__gte=timezone.now() - timezone.timedelta(days=30)))
-                )
-            )
-            unit_object = get_object_or_404(Unit, id=unit_id)
-            complex = unit_object.complex
-            unit = UnitSerializer(unit_object).data
-            unit['complex'] = {'complex_id': complex.id, 'name': complex.name}
-            unit['admin_fees'] = AdminFeeSerializer(admin_fees, many=True).data
-            related_units.append(unit)
-
-        return Response(related_units, status=status.HTTP_200_OK)
 
 
 class UnitDetail(APIView):

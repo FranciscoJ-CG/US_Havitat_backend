@@ -1,4 +1,5 @@
-from estate_admin.models import Relationship
+
+from estate_admin.models import Relationship 
 
 class UserStatus:
     @staticmethod 
