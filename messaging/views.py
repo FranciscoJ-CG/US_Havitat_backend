@@ -62,7 +62,7 @@ def delete_threads_view(request):
     if not thread_ids:
         return Response({'error': 'No thread IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
     
-    deleted_count = ThreadStatus.objects.filter(user=user, thread_id__in=thread_ids).update(is_deleted=True)
+    deleted_count = ThreadStatus.objects.filter(user=user, id__in=thread_ids).update(is_deleted=True)
  
     return Response({
         'success': f'{deleted_count} threads marked as deleted',
