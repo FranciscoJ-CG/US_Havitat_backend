@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.cache import cache
+from django.shortcuts import get_object_or_404
 
 from Crypto.Cipher import DES3
 from Crypto.Hash import MD5
@@ -174,7 +175,7 @@ def update_transaction_and_admin_fees(transaction, status_id):
 
 
 def fetch_transactions(complex_id):
-    account_id = AccountInfo.objects.get(complex=complex_id).account_id
+    account_id = get_object_or_404(AccountInfo, complex=complex_id).account_id
 
     history_url = f"{settings.BAAS_API_URL}/accounts/history"
     account_own_url = f"{settings.BAAS_API_URL}/accounts/own"

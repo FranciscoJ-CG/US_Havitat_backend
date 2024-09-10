@@ -12,12 +12,15 @@ from rest_framework.decorators import api_view
 import  uuid, requests, json, secrets, string
 from datetime import datetime
 
-from .models import Transaction, AccountInfo
-from .serializers import (TransactionSerializer,
+from transactions.models import Transaction, AccountInfo
+from transactions.serializers import (TransactionSerializer,
                           PSETransactionSerializer,
                           )
-from .services import  Utils, BaaSConnection, update_transaction_and_admin_fees
-from accounting.models import AdminFee
+from transactions.services import  Utils, BaaSConnection, update_transaction_and_admin_fees
+from accounting.models import AdminFee 
+from accounting.serializers import AdminFeeSerializer
+from estate_admin.models import Unit
+from estate_admin.serializers import UnitSerializer
 
 
 class DictionariesView(APIView):
@@ -56,7 +59,16 @@ class UserTransactionListView(APIView):
             if is_active: relevant_transactions.append(transaction)
          
         serializer = TransactionSerializer(relevant_transactions, many=True)
-        return Response(serializer.data)
+        transaction_list = serializer.data
+        for transaction in transaction_list:
+            admin_fees = AdminFee.objects.filter(transaction=transaction['id'])
+            admin_fees_list = AdminFeeSerializer(admin_fees, many=True).data
+            for admin_fee in admin_fees_list:
+                unit = Unit.objects.get(id=admin_fee['unit'])
+                admin_fee['unit'] = UnitSerializer(unit).data
+            transaction['admin_fees'] = admin_fees_list
+
+        return Response(transaction_list)
         
 
 @api_view(['GET'])
@@ -159,7 +171,8 @@ class AccountOwnView(APIView):
     def get(self, request):
         api_key = settings.COINK_X_API_KEY 
         url = 'https://xc223xnsz1.execute-api.us-east-1.amazonaws.com/dev/v1/accounts/own'
-        authorization = cache.get('authorization')
+        authorization = cache.get('authorization_2')
+        print(authorization)
 
         headers = {
             'Authorization': authorization,

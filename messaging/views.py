@@ -12,36 +12,21 @@ from auth_app.models import User
 from estate_admin.models import Relationship, Complex
 
 
-def get_thread_status_queryset(user, complex_id, inbox=True):
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def message_box_view(request, complex_id):
+    user = request.user
     filter_args = {
         'user': user,
         'is_deleted': False,
         'thread__complex_id': complex_id
     }
-    if inbox:
-        filter_args['in_inbox'] = True
-    else:
-        filter_args['in_outbox'] = True
-
-    return ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def inbox_view(request, complex_id):
-    user = request.user
-    thread_statuses = get_thread_status_queryset(user, complex_id, inbox=True)
+    thread_statuses = ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
     serializer = ThreadStatusSerializer(thread_statuses, many=True)
+
     return Response({'threads': serializer.data})
 
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def outbox_view(request, complex_id):
-    user = request.user
-    thread_statuses = get_thread_status_queryset(user, complex_id, inbox=False)
-    serializer = ThreadStatusSerializer(thread_statuses, many=True)
-    return Response({'threads': serializer.data})
 
 
 @api_view(['GET', 'PUT'])
@@ -66,10 +51,6 @@ def thread_view(request, thread_id):
             'messages': message_serializer.data,
         })
 
-    elif request.method == 'PUT':
-        thread_status.is_read = True
-        thread_status.save()
-        return Response({'status': 'Thread marked as read'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

@@ -10,7 +10,7 @@ from estate_admin.serializers import UnitSerializer
 from estate_admin.models import Unit 
 
 
-def fetch_units_with_admin_fees(complex_id):
+def fetch_units_with_last_admin_fees(complex_id):
     related_units_ids = Unit.objects.filter(complex=complex_id).values_list('id', flat=True)
     related_units = []
 
@@ -22,9 +22,7 @@ def fetch_units_with_admin_fees(complex_id):
             )
         )
         unit_object = get_object_or_404(Unit, id=unit_id)
-        complex = unit_object.complex
         unit = UnitSerializer(unit_object).data
-        unit['complex'] = {'complex_id': complex.id, 'name': complex.name}
         unit['admin_fees'] = AdminFeeSerializer(admin_fees, many=True).data
         related_units.append(unit)
 

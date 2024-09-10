@@ -69,6 +69,7 @@ class AdminFeeView(APIView):
                 return Response({"success": "AdminFees created successfully"}, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        print('Failed to validate AdminFee data', serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):

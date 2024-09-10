@@ -8,9 +8,9 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from estate_admin.services import UserStatus
-from estate_admin.services_.fetch_units_with_admin_fees import fetch_units_with_admin_fees
+from estate_admin.services_.fetch_units_with_admin_fees import fetch_units_with_last_admin_fees
 from estate_admin.models import (Relationship, Unit, Complex, UnitType)
-from estate_admin.serializers import (UnitSerializer, ComplexSerializer, UnitSerializerWhitRelationship)
+from estate_admin.serializers import (ComplexSerializer, UnitSerializerWhitRelationship)
 from accounting.models import AdminFee
 from accounting.serializers import AdminFeeSerializer
 from transactions.services import BaaSConnection, update_transaction_and_admin_fees, fetch_transactions
@@ -35,27 +35,15 @@ class ComplexInfoView(APIView):
 
     def get(self, request, complex_id):
         try:
-            account_data = fetch_transactions(complex_id)
-            units = fetch_units_with_admin_fees(complex_id)
-
             return Response({
-                'account_data': account_data,
-                'units': units
+                'account_data': fetch_transactions(complex_id),
+                'units': fetch_units_with_last_admin_fees(complex_id),
+                'complex': ComplexSerializer(Complex.objects.get(id=complex_id)).data
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-class ComplexManagement(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        managed_complexes_ids = UserStatus.is_complex_admin(user)
-        managed_complexes = Complex.objects.filter(id__in=managed_complexes_ids)
-        serializer = ComplexSerializer(managed_complexes, many=True)
-        return Response({'managed_complexes': serializer.data})
 
 
 class UnitManagement(APIView):
@@ -79,11 +67,7 @@ class UnitManagement(APIView):
             }
 
             admin_id = Relationship.objects.filter(complex=complex, role='estate_admin').values_list('user_id', flat=True).first()
-            unit['complex'] = {
-                'name': complex.name, 
-                'id': complex.id, 
-                'admin_id': admin_id
-            }
+            unit['complex'] = {**ComplexSerializer(complex).data, 'admin_id': admin_id} 
             unit['type'] = UnitType.objects.get(id=unit['type_id']).name
 
         return Response({'units': units})
