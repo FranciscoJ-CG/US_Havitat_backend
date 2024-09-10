@@ -47,10 +47,8 @@ def thread_view(request, thread_id):
         message_serializer = MessageSerializer(messages, many=True)
         return Response({
             'subject': thread.subject,
-            'user_id': user.id,
             'messages': message_serializer.data,
         })
-
 
 
 @api_view(['POST'])

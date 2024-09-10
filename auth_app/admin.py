@@ -26,10 +26,10 @@ class CustomUserAdmin(BaseUserAdmin):
     ordering = ('username',)
 
 
-    def _is_super_unit_admin(self, user):
-        related_super_units = Relationship.objects.filter(user=user, role='estate_admin').values_list('super_unit', flat=True)
-        related_super_units = list(filter(None, related_super_units))
-        return bool(related_super_units), related_super_units
+    def _is_havitat_admin(self, user):
+        related_havitats = Relationship.objects.filter(user=user, role='estate_admin').values_list('havitat', flat=True)
+        related_havitats = list(filter(None, related_havitats))
+        return bool(related_havitats), related_havitats
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -37,11 +37,11 @@ class CustomUserAdmin(BaseUserAdmin):
             return qs
 
         non_staff_qs = qs.filter(is_staff=False)
-        is_super_unit_admin, super_unit_ids = self._is_super_unit_admin(request.user)
+        is_havitat_admin, havitat_ids = self._is_havitat_admin(request.user)
 
-        if is_super_unit_admin:
+        if is_havitat_admin:
             complex_managers_ids= Relationship.objects.filter(
-                complex__super_unit__in=super_unit_ids, role='estate_admin'
+                complex__havitat__in=havitat_ids, role='estate_admin'
                 ).values_list('user', flat=True)
             complex_managers_qs= User.objects.filter(id__in=complex_managers_ids)
             combined_qs = qs.filter(Q(id__in=non_staff_qs.values_list('id', flat=True)) | 
