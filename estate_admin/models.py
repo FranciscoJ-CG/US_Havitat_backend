@@ -123,8 +123,7 @@ class Relationship(models.Model):
             raise ValidationError("A user with a relationship to a unit cannot have the estate_admin role.")
 
         if self.role != 'other' and self.other_role is not None:
-            self.other_role = None
-
+            raise ValidationError("A user cannot have a relationship with a dynamic role.")
 
     class Meta:
         unique_together = ('user', 'unit', 'role' )

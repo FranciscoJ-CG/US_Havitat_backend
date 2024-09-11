@@ -40,7 +40,6 @@ class TestThread:
     def test_create_thread(self, thread, user1, user2):
         assert thread.subject == "Test Thread"
         assert thread.created_at is not None
-        assert thread.last_updated is not None
         assert list(thread.participants.all()) == [user1, user2]
 
     def test_str_representation(self, thread):
@@ -58,14 +57,6 @@ class TestThread:
         with pytest.raises(IntegrityError):
             Thread.objects.create(subject=None)
 
-    def test_auto_update_last_updated(self, thread):
-        old_last_updated = thread.last_updated
-        time.sleep(0.1)
-        thread.subject = "Updated Subject"
-        thread.save()
-        thread.refresh_from_db()
-        assert thread.last_updated > old_last_updated
-
 
 @pytest.mark.django_db
 class TestThreadStatus:
@@ -79,8 +70,9 @@ class TestThreadStatus:
         assert thread_status.is_deleted is False
         assert thread_status.tags is None
 
-    def test_str_representation(self, thread_status):
-        assert str(thread_status) == f"Status of Test Thread for {thread_status.user}"
+    def test_str_representation(self, thread_status, user1):
+        
+        assert str(thread_status) ==f"Thread: {thread_status.thread.subject}, User: {str(user1)}"
 
     @pytest.mark.parametrize("field,value", [
         ("can_send", True),

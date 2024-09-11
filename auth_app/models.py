@@ -1,10 +1,11 @@
 # auth_app/models.py
 
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser, Group, Permission
 
 class UserType(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
 
     def __str__(self):
         return self.name
@@ -24,10 +25,18 @@ class DocumentType(models.Model):
         verbose_name_plural = "Tipos de Documentos"
 
 class User(AbstractUser):
-    type = models.ForeignKey(UserType, on_delete=models.PROTECT, null=True, blank=True)
-    document = models.CharField(max_length=255) 
-    document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT, null=True, blank=True)
+    type = models.ForeignKey(UserType, on_delete=models.PROTECT)
+    document = models.CharField(max_length=10) 
+    document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT)
     worker = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['document', 'document_type'], name='unique_document_per_type')
+        ]
+        verbose_name = "Usuario"
+        verbose_name_plural = "Usuarios"
+    
 
     groups = models.ManyToManyField(
         Group,
@@ -47,6 +56,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
-    class Meta:
-        verbose_name = "Usuario"
-        verbose_name_plural = "Usuarios"
+    def clean(self):
+        if not self.document.isdigit():
+            raise ValidationError("Document must be numeric")
+

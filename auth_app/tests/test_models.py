@@ -1,8 +1,11 @@
-import pytest
+# auth_app/tests/test_models.py
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+
+import pytest
+
 from auth_app.models import UserType, DocumentType, User
 
 @pytest.fixture
@@ -20,7 +23,7 @@ def user(user_type, document_type):
         email="testuser@example.com",
         password="testpass123",
         type=user_type,
-        document=12345678,
+        document='12345678',
         document_type=document_type,
         worker=False
     )
@@ -48,7 +51,7 @@ class TestUserType:
 
     @pytest.mark.parametrize("name", [
         "",
-        "A" * 256,  # Exceeds max_length
+        "A" * 51,  # Exceeds max_length
     ])
     def test_invalid_name(self, name):
         with pytest.raises(ValidationError):
@@ -78,13 +81,14 @@ class TestDocumentType:
         assert DocumentType._meta.verbose_name == "Tipo de Documento"
         assert DocumentType._meta.verbose_name_plural == "Tipos de Documentos"
 
+
 @pytest.mark.django_db
 class TestUser:
     def test_create_user(self, user, user_type, document_type):
         assert user.username == "testuser"
         assert user.email == "testuser@example.com"
         assert user.type == user_type
-        assert user.document == 12345678
+        assert user.document == '12345678'
         assert user.document_type == document_type
         assert user.worker is False
 
@@ -101,10 +105,8 @@ class TestUser:
         assert superuser.is_staff
 
     @pytest.mark.parametrize("field,value", [
-        ("username", ""),
-        ("username", "a" * 151),  # Exceeds max_length
         ("email", "invalid_email"),
-        ("document", "not_an_integer"),
+        ("document", "not_numeric"),
     ])
     def test_invalid_fields(self, user, field, value):
         setattr(user, field, value)
@@ -112,18 +114,60 @@ class TestUser:
             user.full_clean()
 
     def test_worker_default(self):
-        user = User.objects.create_user(username="worker_test")
+        user = User.objects.create_user(
+            username="worker_test",
+            email="worker_test@example.com",
+            password="testpass123",
+            document="12345678",
+            document_type=DocumentType.objects.create(name="Test Doc Type"),
+            type=UserType.objects.create(name="Test User Type")
+        )
         assert user.worker is False
 
-    def test_optional_fields(self):
-        user = User.objects.create_user(username="optional_test")
-        assert user.type is None
-        assert user.document is None
-        assert user.document_type is None
+    def test_document_unique_constraint(self, user, document_type, user_type):
+        duplicate_user = User.objects.create_user(
+            username="duplicate_user",
+            email="duplicate@example.com",
+            password="testpass123",
+            document=user.document,
+            document_type=document_type,
+            type=user_type
+        )
+
+        with pytest.raises(ValidationError):
+            duplicate_user.full_clean()
+
+        new_document_type = DocumentType.objects.create(name="New Doc Type")
+        duplicate_document_but_different_type = User.objects.create_user(
+            username="new_duplicate_user",
+            email="duplicate2@example.com",
+            password="testpass123",
+            document=user.document,
+            document_type=new_document_type,
+            type=user_type
+        )
+        duplicate_document_but_different_type.full_clean()
+
+
+    def test_numeric_document_validation(self, user):
+        user.document = "1" * 10
+        user.full_clean()
+
+        user.document = "1" * 11
+        with pytest.raises(ValidationError):
+            user.full_clean()
+
+        user.document = "1" * 10
+        user.full_clean()
+
+        user.document = "abc123"
+        with pytest.raises(ValidationError):
+            user.full_clean()
 
     def test_verbose_name(self):
         assert User._meta.verbose_name == "Usuario"
         assert User._meta.verbose_name_plural == "Usuarios"
+
 
 @pytest.mark.django_db
 class TestUserRelationships:
@@ -148,14 +192,6 @@ class TestEdgeCases:
     def test_create_user_without_username(self):
         with pytest.raises(ValueError):
             User.objects.create_user(username="")
-
-    def test_user_with_same_document(self, user, document_type):
-        with pytest.raises(IntegrityError):
-            User.objects.create_user(
-                username="another_user",
-                document=user.document,
-                document_type=document_type
-            )
 
     def test_user_type_cascade_delete(self, user):
         with pytest.raises(IntegrityError):

@@ -97,15 +97,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backendEstateManagement.wsgi.application'
 
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-default = env.db('DATABASE_URL', default=None)
-DATABASES={ 'default': default } 
+if ENV =='production':
+    default = env.db('DATABASE_URL', default=None)
+    DATABASES={ 'default': default } 
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 
