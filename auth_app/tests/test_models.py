@@ -150,10 +150,10 @@ class TestUser:
 
 
     def test_numeric_document_validation(self, user):
-        user.document = "1" * 10
+        user.document = "1" * 15
         user.full_clean()
 
-        user.document = "1" * 11
+        user.document = "1" * 16
         with pytest.raises(ValidationError):
             user.full_clean()
 

@@ -25,9 +25,9 @@ class DocumentType(models.Model):
         verbose_name_plural = "Tipos de Documentos"
 
 class User(AbstractUser):
-    type = models.ForeignKey(UserType, on_delete=models.PROTECT)
-    document = models.CharField(max_length=10) 
-    document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT)
+    type = models.ForeignKey(UserType, on_delete=models.PROTECT,  null=True)
+    document = models.CharField(max_length=15) 
+    document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT, null=True)
     worker = models.BooleanField(default=False)
 
     class Meta:
