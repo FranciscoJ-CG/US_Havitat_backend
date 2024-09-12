@@ -97,7 +97,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backendEstateManagement.wsgi.application'
 
 
-if ENV =='production':
+if (ENV =='production' or ENV == 'railway'):
     default = env.db('DATABASE_URL', default=None)
     DATABASES={ 'default': default } 
 else:
