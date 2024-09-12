@@ -1,6 +1,6 @@
 # messaging/models.py
 from django.conf import settings
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import timezone
 
 
@@ -29,6 +29,7 @@ class ThreadStatus(models.Model):
         return f"Thread: {self.thread.subject}, User: {self.user}"
 
     class Meta:
+        unique_together = ('user', 'thread')
         indexes = [
             models.Index(fields=['last_message_date']),
             models.Index(fields=['user', 'thread']),
@@ -49,6 +50,11 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender} to {self.thread.subject} - {self.type}"
+    
+    # def save(self, *args, **kwargs):
+    #     if not len(self.body.strip()) > 1:
+    #         raise IntegrityError("The message cannot be empty")
+    #     super().save(*args, **kwargs)
 
     class Meta:
         indexes = [

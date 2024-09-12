@@ -1,5 +1,6 @@
 # auth_app/tests/test_models.py
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
@@ -55,7 +56,8 @@ class TestUserType:
     ])
     def test_invalid_name(self, name):
         with pytest.raises(ValidationError):
-            UserType.objects.create(name=name).full_clean()
+            UserType.objects.create(name=name).full_clean().save()
+
 
     def test_verbose_name(self):
         assert UserType._meta.verbose_name == "Tipo de Usuario"
@@ -71,7 +73,7 @@ class TestDocumentType:
 
     @pytest.mark.parametrize("name", [
         "",
-        "A" * 256,  # Exceeds max_length
+        "A" * 51,  # Exceeds max_length
     ])
     def test_invalid_name(self, name):
         with pytest.raises(ValidationError):
@@ -124,29 +126,28 @@ class TestUser:
         )
         assert user.worker is False
 
-    def test_document_unique_constraint(self, user, document_type, user_type):
-        duplicate_user = User.objects.create_user(
-            username="duplicate_user",
-            email="duplicate@example.com",
-            password="testpass123",
-            document=user.document,
-            document_type=document_type,
-            type=user_type
-        )
+    def test_document_unique_constraint_fail(self, user):
+        with pytest.raises(IntegrityError):
+            User.objects.create_user(
+                username="duplicate_user",
+                email="duplicate@example.com",
+                password="testpass123",
+                document=user.document,
+                document_type=user.document_type,
+                type=user.type
+            )
 
-        with pytest.raises(ValidationError):
-            duplicate_user.full_clean()
-
-        new_document_type = DocumentType.objects.create(name="New Doc Type")
-        duplicate_document_but_different_type = User.objects.create_user(
-            username="new_duplicate_user",
-            email="duplicate2@example.com",
-            password="testpass123",
-            document=user.document,
-            document_type=new_document_type,
-            type=user_type
-        )
-        duplicate_document_but_different_type.full_clean()
+    def test_document_unique_constraint_valid(self, user):
+        with transaction.atomic():
+            new_document_type = DocumentType.objects.create(name="New Doc Type")
+            User.objects.create_user(
+                username="new_duplicate_user",
+                email="duplicate2@example.com",
+                password="testpass123",
+                document=user.document,
+                document_type=new_document_type,
+                type=user.type
+            ).full_clean()
 
 
     def test_numeric_document_validation(self, user):

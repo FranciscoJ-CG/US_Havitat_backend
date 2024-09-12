@@ -5,7 +5,6 @@ from django.db.utils import IntegrityError
 from messaging.models import Thread, ThreadStatus, Message
 from auth_app.models import User
 
-import time
 
 @pytest.fixture
 def user1():
@@ -57,6 +56,13 @@ class TestThread:
         with pytest.raises(IntegrityError):
             Thread.objects.create(subject=None)
 
+    def test_thread_cascade_delete_messages(self, thread, message):
+        thread.delete()
+        with pytest.raises(Message.DoesNotExist):
+            message.refresh_from_db()
+
+
+
 
 @pytest.mark.django_db
 class TestThreadStatus:
@@ -93,6 +99,11 @@ class TestThreadStatus:
             thread_status.tags = "A" * 256
             thread_status.full_clean()
 
+    def test_duplicate_thread_status(self, thread_status):
+        with pytest.raises(IntegrityError):
+            ThreadStatus.objects.create(user=thread_status.user, thread=thread_status.thread)
+
+
 @pytest.mark.django_db
 class TestMessage:
     def test_create_message(self, message, user1, thread):
@@ -118,6 +129,16 @@ class TestMessage:
             type=message_type
         )
         message.full_clean()
+
+    def test_invalid_message_type(self, user1, thread):
+        with pytest.raises(ValidationError):
+            Message.objects.create(
+                sender=user1,
+                thread=thread,
+                body="Invalid type message",
+                type="invalid_type"
+            ).full_clean()
+
 
     def test_message_without_type(self, user1, thread):
         with pytest.raises(ValidationError):
@@ -188,6 +209,7 @@ class TestEdgeCases:
         for thread in threads:
             ThreadStatus.objects.create(user=user1, thread=thread)
         assert ThreadStatus.objects.filter(user=user1).count() == 5
+    
 
     def test_message_created_at_ordering(self, user1, thread):
         messages = [
@@ -200,3 +222,12 @@ class TestEdgeCases:
             for i in range(5)
         ]
         assert list(thread.message_set.order_by('created_at')) == messages
+
+    def test_message_with_whitespace_body(self, user1, thread):
+        with pytest.raises(ValidationError):
+            Message.objects.create(
+                sender=user1,
+                thread=thread,
+                body="   ",
+                type="simple_message"
+            ).full_clean()

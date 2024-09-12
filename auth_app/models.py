@@ -15,7 +15,7 @@ class UserType(models.Model):
         verbose_name_plural = "Tipos de Usuarios"
 
 class DocumentType(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
 
     def __str__(self):
         return self.name
