@@ -35,7 +35,7 @@ def thread_view(request, thread_id):
     user = request.user
     thread = get_object_or_404(Thread, id=thread_id)
     thread_status = get_object_or_404(ThreadStatus, user=user, thread=thread, is_deleted=False)
-
+        
     if request.method == 'GET':
 
         thread_status.is_read = True
@@ -48,6 +48,7 @@ def thread_view(request, thread_id):
         return Response({
             'subject': thread.subject,
             'messages': message_serializer.data,
+            'participants': thread.participants.all().values('id', 'username')
         })
 
 
