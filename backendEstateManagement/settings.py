@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'messaging',
     'transactions',
     'accounting',
+    'documents',
 ]
 
 MIDDLEWARE = [
@@ -178,3 +179,6 @@ COINK_X_API_KEY = os.getenv('COINK_X_API_KEY')
 BAAS_API_URL = os.getenv('COINK_API_URL')
 
 BAAS_ACCOUNT_NUMBER= os.getenv('BAAS_ACCOUNT_NUMBER')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
