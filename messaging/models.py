@@ -1,6 +1,7 @@
 # messaging/models.py
 from django.conf import settings
-from django.db import models, IntegrityError
+from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils import timezone
 
 
@@ -51,10 +52,10 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.sender} to {self.thread.subject} - {self.type}"
     
-    # def save(self, *args, **kwargs):
-    #     if not len(self.body.strip()) > 1:
-    #         raise IntegrityError("The message cannot be empty")
-    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        if not len(self.body.strip()) > 1:
+            raise ValidationError("The message cannot be empty")
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [

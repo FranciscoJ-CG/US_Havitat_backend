@@ -21,14 +21,8 @@ ENV= os.getenv('ENV')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1r&vf8hl=585h8v4!3&-(g(!u9e#$&*mhjbvdjz!$hau1baw$b'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False),
@@ -56,8 +50,8 @@ INSTALLED_APPS = [
     'auth_app',
     'estate_admin',
     'messaging',
-    'transactions',
-    'accounting',
+    # 'transactions',
+    # 'accounting',
     'documents',
 ]
 
@@ -174,11 +168,6 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'auth_app.User'
 
-COINK_SECRET= os.getenv('COINK_SECRET')
-COINK_X_API_KEY = os.getenv('COINK_X_API_KEY')
-BAAS_API_URL = os.getenv('COINK_API_URL')
-
-BAAS_ACCOUNT_NUMBER= os.getenv('BAAS_ACCOUNT_NUMBER')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
