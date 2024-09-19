@@ -18,7 +18,6 @@ class PermissionManager:
             permissions = Permission.objects.filter(content_type=content_type)
             group.permissions.add(*permissions)
 
-        # Only add view permissions for 'adminbalance' and 'unit'
         view_only_models = ['unit']
         for model_name in view_only_models:
             content_type = ContentType.objects.get(app_label='estate_admin', model=model_name)

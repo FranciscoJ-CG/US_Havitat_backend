@@ -50,8 +50,6 @@ INSTALLED_APPS = [
     'auth_app',
     'estate_admin',
     'messaging',
-    # 'transactions',
-    # 'accounting',
     'documents',
 ]
 
@@ -169,5 +167,3 @@ SIMPLE_JWT = {
 AUTH_USER_MODEL = 'auth_app.User'
 
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
