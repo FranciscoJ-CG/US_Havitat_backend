@@ -44,8 +44,8 @@ class UnitManagement(APIView):
                 'permission_level': relationship.permission_level
             }
 
-            admin_id = Relationship.objects.filter(complex=complex, role='estate_admin').values_list('user_id', flat=True).first()
-            unit['complex'] = {**ComplexSerializer(complex).data, 'admin_id': admin_id} 
+            admin_ids = Relationship.objects.filter(complex=complex, role='estate_admin').values_list('user_id', flat=True)
+            unit['complex'] = {**ComplexSerializer(complex).data, 'admin_ids': admin_ids} 
             unit['type'] = UnitType.objects.get(id=unit['type_id']).name
 
         return Response({'units': units})

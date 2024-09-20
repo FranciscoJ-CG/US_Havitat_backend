@@ -1,6 +1,7 @@
 # messaging/views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
 from rest_framework import status
@@ -12,20 +13,36 @@ from auth_app.models import User
 from estate_admin.models import Relationship, Complex
 
 
+class CustomPagination(PageNumberPagination):
+    page_size = 5  
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def message_box_view(request, complex_id):
     user = request.user
+
+    view_filters = {
+        'inbox': {'in_inbox': True},
+        'outbox': {'in_outbox': True},
+    }
+    view_filter = view_filters.get(request.GET.get('view'), {})
+
     filter_args = {
         'user': user,
         'is_deleted': False,
         'thread__complex_id': complex_id
-    }
-    thread_statuses = ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
-    serializer = ThreadStatusSerializer(thread_statuses, many=True)
+    }.update(view_filter)
 
-    return Response({'threads': serializer.data})
+    thread_statuses = ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
+    print('thread_statuses', len(thread_statuses))
+    
+    paginator = CustomPagination()
+    result_page = paginator.paginate_queryset(thread_statuses, request)
+
+    serializer = ThreadStatusSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 
