@@ -8,7 +8,7 @@ class AdminMessage(admin.ModelAdmin):
     list_display = ('id', 'sender', 'type')
 
 class AdminThreadStatus(admin.ModelAdmin):
-    list_display = ('id', 'user', 'thread')
+    list_display = ('id', 'user', 'thread', 'is_deleted')
 
 
 admin.site.register(Thread)
