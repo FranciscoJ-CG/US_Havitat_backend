@@ -89,6 +89,7 @@ def send_message_view(request):
     sender = request.user
     recipient_id = request.data.get('recipient_id')
     subject = request.data.get('subject')
+    priority = request.data.get('priority')
     body = request.data.get('body')
     thread_id = request.data.get('thread_id', None)
     complex_id = request.data.get('complex_id', None)
@@ -97,7 +98,7 @@ def send_message_view(request):
     thread = get_object_or_404(Thread, id=thread_id) if thread_id else None
     complex = get_object_or_404(Complex, id=complex_id) if complex_id else None
 
-    message = send_message(sender, recipient, subject, body, thread, complex)
+    message = send_message(sender, recipient, subject, body, thread, complex, priority)
 
     if message:
         return Response({'detail': 'Message sent successfully'}, status=status.HTTP_200_OK)
@@ -113,13 +114,14 @@ def send_massive_message_view(request):
 
     if serializer.is_valid():
         subject = serializer.validated_data['subject']
+        priority = serializer.validated_data['priority']
         body = serializer.validated_data['body']
         complex_id = serializer.validated_data['complex_id']
         user_ids = Relationship.objects.filter(unit__complex_id=complex_id).values_list('user_id', flat=True)
         receivers = User.objects.filter(id__in= user_ids)
         complex = Complex.objects.get(id=complex_id)
 
-        send_massive_message(sender, subject, body, receivers, complex)
+        send_massive_message(sender, subject, body, receivers, complex, priority)
         return Response({'detail': 'Massive message sent successfully'}, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -16,6 +16,13 @@ class Thread(models.Model):
         
 
 class ThreadStatus(models.Model):
+
+    PRIORITY_CHOICES = [ 
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+
     last_message_date = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     thread = models.ForeignKey(Thread, on_delete=models.CASCADE)
@@ -24,6 +31,7 @@ class ThreadStatus(models.Model):
     in_outbox= models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='low')
     tags = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):

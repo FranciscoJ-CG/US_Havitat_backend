@@ -24,7 +24,17 @@ class ThreadStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ThreadStatus
-        fields = ['id', 'user', 'thread', 'can_send', 'is_read', 'is_deleted', 'in_inbox', 'in_outbox', 'last_message_date']
+        fields = ['id',
+        'user',
+        'thread',
+        'can_send',
+        'is_read',
+        'is_deleted',
+        'in_inbox',
+        'in_outbox',
+        'last_message_date',
+        'priority',
+        ]
 
 
 
