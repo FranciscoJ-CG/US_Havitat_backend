@@ -20,23 +20,21 @@ class CustomPagination(PageNumberPagination):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def message_box_view(request, complex_id):
+def message_box_view(request, complex_id, view):
     user = request.user
 
-    view_filters = {
+    view_filter = {
         'inbox': {'in_inbox': True},
         'outbox': {'in_outbox': True},
-    }
-    view_filter = view_filters.get(request.GET.get('view'), {})
+    }.get(view, {})
 
-    filter_args = {
+    filter_args ={**view_filter, **{
         'user': user,
         'is_deleted': False,
         'thread__complex_id': complex_id
-    }.update(view_filter)
+    }}
 
     thread_statuses = ThreadStatus.objects.filter(**filter_args).order_by('-last_message_date')
-    print('thread_statuses', len(thread_statuses))
     
     paginator = CustomPagination()
     result_page = paginator.paginate_queryset(thread_statuses, request)

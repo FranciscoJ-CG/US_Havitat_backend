@@ -1,7 +1,7 @@
 # estate_admin/forms.py
 from django import forms
 
-from .models import  Relationship
+from .models import  Relationship, ComplexImage
 
 
 class RelationshipForm(forms.ModelForm):
@@ -36,4 +36,20 @@ class RelationshipForm(forms.ModelForm):
             """
         })
 
+
+class ComplexImageForm(forms.ModelForm):
+    image_upload = forms.ImageField(required=True, label="Upload Image")
+
+    class Meta:
+        model = ComplexImage
+        fields = ['complex', 'image_upload']
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        uploaded_file = self.cleaned_data.get('image_upload')
+        if uploaded_file:
+            instance.image_data = uploaded_file.read()
+        if commit:
+            instance.save()
+        return instance
 

@@ -132,3 +132,11 @@ class Relationship(models.Model):
         indexes = [
             models.Index(fields=['user', 'role']),
         ]
+
+
+class ComplexImage(models.Model):
+    complex = models.ForeignKey(Complex, on_delete=models.CASCADE)
+    image_data = models.BinaryField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Image for {self.complex.name}"

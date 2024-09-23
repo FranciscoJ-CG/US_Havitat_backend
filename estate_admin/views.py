@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from estate_admin.services_.fetch_units import fetch_units
-from estate_admin.models import (Relationship, Unit, Complex, UnitType)
-from estate_admin.serializers import (ComplexSerializer, UnitSerializerWhitRelationship)
+from estate_admin.models import (Relationship, Unit, Complex, UnitType, ComplexImage)
+from estate_admin.serializers import (ComplexSerializer, UnitSerializerWhitRelationship, ComplexImageSerializer)
 
 
 class ComplexInfoView(APIView):
@@ -58,3 +58,14 @@ class UnitDetail(APIView):
         data = serializer.data
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+
+class ComplexImageView(APIView):
+    def get(self, request, complex_id):
+        try:
+            complex_image = ComplexImage.objects.get(complex=complex_id)
+            serializer = ComplexImageSerializer(complex_image)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ComplexImage.DoesNotExist:
+            return Response({"error": "Image not found"}, status=status.HTTP_404_NOT_FOUND)

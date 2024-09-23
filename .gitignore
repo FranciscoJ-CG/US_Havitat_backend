@@ -27,6 +27,7 @@ staticfiles/
 .env.*.local
 sandbox.py
 COINK_DICTs/
+user_images/
 
 
 # VS Code

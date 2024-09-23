@@ -1,11 +1,14 @@
 # estate_admin/serializers.py
 from rest_framework import serializers
 
+import base64
+
 from .models import (Unit,
                      Complex,
                      ComplexType,
                      UnitType,
                      Relationship,
+                     ComplexImage,
                      )
 from auth_app.serializers import UserSerializer
 
@@ -49,3 +52,16 @@ class UnitSerializerWhitRelationship(serializers.ModelSerializer):
     class Meta:
         model = Unit
         fields = ['id', 'name', 'comment', 'complex', 'type',  'relationship_set']
+    
+
+class ComplexImageSerializer(serializers.ModelSerializer):
+    image_base64 = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ComplexImage
+        fields = ['complex', 'image_base64']
+
+    def get_image_base64(self, obj):
+        if obj.image_data:
+            return base64.b64encode(obj.image_data).decode('utf-8')
+        return None

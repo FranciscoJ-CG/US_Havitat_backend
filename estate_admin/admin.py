@@ -11,8 +11,9 @@ from .models import (Havitat,
                      Unit,
                      Relationship,
                      DynamicRole,
+                     ComplexImage,
                      )
-from .forms import  RelationshipForm
+from .forms import  RelationshipForm, ComplexImageForm
 from .services import UserStatus
 
 
@@ -148,6 +149,22 @@ class ComplexAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+
+class ComplexImageAdmin(admin.ModelAdmin):
+    form = ComplexImageForm
+    list_display = ['complex', 'id']
+    readonly_fields = ['image_preview']
+
+    def image_preview(self, obj):
+        if obj.image_data:
+            from django.utils.html import mark_safe
+            import base64
+            encoded = base64.b64encode(obj.image_data).decode()
+            return mark_safe(f'<img src="data:image/png;base64,{encoded}" width="200" />')
+        return "No Image"
+
+    image_preview.short_description = "Image Preview"
+
 admin.site.register(Unit, UnitAdmin)
 admin.site.register(Relationship, RelationshipAdmin)
 admin.site.register(Complex, ComplexAdmin)
@@ -155,3 +172,4 @@ admin.site.register(Havitat)
 admin.site.register(ComplexType)
 admin.site.register(UnitType)
 admin.site.register(DynamicRole)
+admin.site.register(ComplexImage, ComplexImageAdmin)
