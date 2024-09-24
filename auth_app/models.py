@@ -10,9 +10,6 @@ class UserType(models.Model):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Tipo de Usuario"
-        verbose_name_plural = "Tipos de Usuarios"
 
 class DocumentType(models.Model):
     name = models.CharField(max_length=50)
@@ -20,9 +17,6 @@ class DocumentType(models.Model):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Tipo de Documento"
-        verbose_name_plural = "Tipos de Documentos"
 
 class User(AbstractUser):
     type = models.ForeignKey(UserType, on_delete=models.PROTECT,  null=True)
@@ -34,8 +28,6 @@ class User(AbstractUser):
         constraints = [
             models.UniqueConstraint(fields=['document', 'document_type'], name='unique_document_per_type')
         ]
-        verbose_name = "Usuario"
-        verbose_name_plural = "Usuarios"
     
 
     groups = models.ManyToManyField(

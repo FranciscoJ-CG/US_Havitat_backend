@@ -2,6 +2,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
+
 from auth_app.models import User
 
 class Havitat(models.Model):
@@ -21,9 +22,6 @@ class ComplexType(models.Model):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Tipo de Complejo"
-        verbose_name_plural = "Tipos de Complejos"
 
 class Complex(models.Model):
     name = models.CharField(max_length=255)
@@ -34,10 +32,6 @@ class Complex(models.Model):
     def __str__(self):
         return f"{self.name} -- {self.havitat.name}"
 
-    class Meta:
-        verbose_name = "Complejo"
-        verbose_name_plural = "Complejos"
-
 
 class UnitType(models.Model):
     name = models.CharField(max_length=255)
@@ -45,9 +39,6 @@ class UnitType(models.Model):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Tipo de Unidad"
-        verbose_name_plural = "Tipos de Unidades"
 
 class Unit(models.Model):
     name = models.CharField(max_length=255)
@@ -60,8 +51,6 @@ class Unit(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Unidad"
-        verbose_name_plural = "Unidades"
         unique_together = ('complex', 'name')
         indexes = [
             models.Index(fields=['name', 'complex']),
@@ -74,9 +63,6 @@ class DynamicRole(models.Model):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Rol Nuevo"
-        verbose_name_plural = "Roles Nuevos"
 
 
 class Relationship(models.Model):
@@ -127,8 +113,6 @@ class Relationship(models.Model):
 
     class Meta:
         unique_together = ('user', 'unit', 'role' )
-        verbose_name = "Relación"
-        verbose_name_plural = "Relaciones"
         indexes = [
             models.Index(fields=['user', 'role']),
         ]
