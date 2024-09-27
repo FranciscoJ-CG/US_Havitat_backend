@@ -16,15 +16,15 @@ import os, environ
 
 environ.Env.read_env()
 
+APP_NAME = 'us_havitat'
+
 ENV= os.getenv('ENV')
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') 
 
 env = environ.Env(
-    # set casting, default value
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
 )
@@ -153,9 +153,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#         # 'rest_framework.authentication.SessionAuthentication',
-#         # 'rest_framework.authentication.BasicAuthentication',
     ),
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -166,4 +165,5 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'auth_app.User'
 
+MSS_API_URL = os.getenv('MSS_API_URL')
 

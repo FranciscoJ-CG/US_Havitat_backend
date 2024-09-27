@@ -11,7 +11,7 @@ class CustomUserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'type', 'document', 'document_type', 'worker')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'type', 'document', 'document_type', 'worker', 'uuid')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
     )
 
@@ -67,7 +67,7 @@ class CustomUserAdmin(BaseUserAdmin):
 
     def get_list_display(self, request):
         if request.user.is_superuser:
-            return ('username', 'email', 'first_name', 'last_name','worker', 'is_staff')
+            return ('username', 'email', 'first_name', 'last_name','worker', 'is_staff', 'uuid')
         return ('username', 'email', 'first_name', 'last_name', 'worker')
 
 

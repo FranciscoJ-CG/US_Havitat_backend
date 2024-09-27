@@ -37,16 +37,9 @@ class ThreadStatusSerializer(serializers.ModelSerializer):
         ]
 
 
-
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
  
     class Meta:
         model = Message
         fields = ['id', 'sender', 'thread', 'body', 'created_at', 'type']
-
-
-class MassiveMessageInputSerializer(serializers.Serializer):
-    subject = serializers.CharField(max_length=255)
-    body = serializers.CharField()
-    complex_id = serializers.IntegerField()

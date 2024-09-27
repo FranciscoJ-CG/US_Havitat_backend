@@ -4,6 +4,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser, Group, Permission
 
+import uuid
+
 class UserType(models.Model):
     name = models.CharField(max_length=50)
 
@@ -19,7 +21,8 @@ class DocumentType(models.Model):
 
 
 class User(AbstractUser):
-    type = models.ForeignKey(UserType, on_delete=models.PROTECT,  null=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    type = models.ForeignKey(UserType, on_delete=models.PROTECT, null=True)
     document = models.CharField(max_length=15) 
     document_type = models.ForeignKey(DocumentType, on_delete=models.PROTECT, null=True)
     worker = models.BooleanField(default=False)
