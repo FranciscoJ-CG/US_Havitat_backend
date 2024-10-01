@@ -1,1 +1,1 @@
-web: gunicorn backendEstateManagement.wsgi:application --bind [::]:$PORT
+web: gunicorn backendEstateManagement.wsgi
