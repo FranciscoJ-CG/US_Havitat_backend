@@ -127,11 +127,10 @@ def send_message_view(request):
         return handle_exceptions('invalid_data', 'send_message_view', e, status.HTTP_400_BAD_REQUEST)
 
     recipient = get_object_or_404(User, id=recipient_id) if recipient_id else None
-    thread = get_object_or_404(Thread, id=thread_id) if thread_id else None
-    thread_id = thread_id if thread else None
     if not thread_id:
         complexes = Complex.objects.filter(id__in=[complex_id])
         if not complexes.exists(): 
+            print('Complex not found')
             return Response({'detail': 'Complex not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
